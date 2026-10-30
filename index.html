@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Progres Pegawai</title>
+  
+  <!-- PWA Meta Tags -->
+  <meta name="theme-color" content="#0D2866">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              blue: '#0D2866',
+              gold: '#E9D024',
+              dark: '#081B48',
+              light: '#F4F6F9'
+            }
+          }
+        }
+      }
+    }
+  </script>
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body class="bg-brand-light text-slate-800 antialiased min-h-screen pb-20">
+
+  <!-- ==================== CONFIG SCRIPT ==================== -->
+  <script>
+    // PASTE URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI
+    const API_URL = "MASUKKAN_URL_WEB_APP_APPS_SCRIPT_ANDA_DI_SINI";
+  </script>
+
+  <!-- ==================== LOGIN SCREEN ==================== -->
+  <div id="login-screen" class="fixed inset-0 bg-brand-blue z-50 flex flex-col items-center justify-center p-6 text-white">
+    <div class="w-full max-w-sm bg-white text-slate-800 rounded-2xl p-6 shadow-xl text-center">
+      <div class="w-16 h-16 bg-brand-blue rounded-full flex items-center justify-center mx-auto mb-4 text-brand-gold">
+        <i data-lucide="check-square" class="w-8 h-8"></i>
+      </div>
+      <h2 class="text-xl font-bold text-brand-blue mb-1">Progres Pegawai</h2>
+      <p class="text-xs text-slate-500 mb-6">Masuk menggunakan email Google Anda</p>
+      
+      <div class="space-y-4 text-left">
+        <div>
+          <label class="block text-xs font-semibold text-slate-600 mb-1">Email Google</label>
+          <input type="email" id="login-email" placeholder="nama@gmail.com" class="w-full px-4 py-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-brand-blue focus:outline-none text-sm">
+        </div>
+        <button onclick="handleLogin()" id="btn-login" class="w-full py-3 bg-brand-blue hover:bg-brand-dark text-white font-semibold rounded-xl transition flex items-center justify-center gap-2">
+          <span>Masuk Aplikasi</span>
+          <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==================== MAIN APP INTERFACE ==================== -->
+  <div id="main-app" class="hidden">
+    
+    <!-- TOP HEADER -->
+    <header class="bg-brand-blue text-white p-4 sticky top-0 z-30 shadow-md">
+      <div class="max-w-md mx-auto flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 bg-white/10 rounded-full flex items-center justify-center text-brand-gold font-bold text-sm" id="user-avatar">
+            U
+          </div>
+          <div>
+            <h1 class="font-bold text-sm leading-tight" id="user-name">Nama User</h1>
+            <span class="inline-block px-2 py-0.5 bg-brand-gold/20 text-brand-gold text-[10px] font-semibold rounded" id="user-role">Role</span>
+          </div>
+        </div>
+        <button onclick="handleLogout()" class="p-2 hover:bg-white/10 rounded-lg transition text-slate-300">
+          <i data-lucide="log-out" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </header>
+
+    <!-- MAIN CONTAINER -->
+    <main class="max-w-md mx-auto p-4 space-y-4">
+      
+      <!-- PROGRESS SUMMARY BAR -->
+      <section class="bg-white p-4 rounded-2xl shadow-sm border border-slate-100">
+        <div class="flex justify-between items-center mb-2">
+          <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Progres Hari Ini</span>
+          <span class="text-xs font-bold text-brand-blue" id="progress-percent">0%</span>
+        </div>
+        <div class="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+          <div id="progress-bar" class="bg-brand-gold h-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+      </section>
+
+      <!-- FILTER & ADD TASK BAR -->
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex bg-slate-200/60 p-1 rounded-xl text-xs font-medium w-full">
+          <button onclick="filterTasks('ALL')" class="flex-1 py-1.5 rounded-lg text-center font-bold bg-white shadow-sm text-brand-blue" id="tab-ALL">Semua</button>
+          <button onclick="filterTasks('To Do')" class="flex-1 py-1.5 rounded-lg text-center text-slate-600" id="tab-ToDo">Pending</button>
+          <button onclick="filterTasks('Review')" class="flex-1 py-1.5 rounded-lg text-center text-slate-600" id="tab-Review">Review</button>
+          <button onclick="filterTasks('Done')" class="flex-1 py-1.5 rounded-lg text-center text-slate-600" id="tab-Done">Selesai</button>
+        </div>
+        <button id="btn-add-task" onclick="openAddTaskModal()" class="hidden p-2.5 bg-brand-blue text-white rounded-xl shadow-md shrink-0">
+          <i data-lucide="plus" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- TASK LIST CONTAINER -->
+      <div id="task-list" class="space-y-3">
+        <!-- Task Cards Akan Di-render Secara Dinamis oleh JS -->
+        <div class="text-center py-8 text-slate-400 text-sm">Memuat data tugas...</div>
+      </div>
+
+    </main>
+
+  </div>
+
+  <!-- ==================== MODAL ADD TASK ==================== -->
+  <div id="modal-add-task" class="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-50 hidden flex items-end sm:items-center justify-center p-0 sm:p-4">
+    <div class="bg-white w-full max-w-md rounded-t-2xl sm:rounded-2xl p-5 space-y-4">
+      <div class="flex justify-between items-center border-b pb-3">
+        <h3 class="font-bold text-brand-blue">Tambah Job Desk Baru</h3>
+        <button onclick="closeAddTaskModal()" class="text-slate-400"><i data-lucide="x" class="w-5 h-5"></i></button>
+      </div>
+      <form id="form-add-task" onsubmit="submitAddTask(event)" class="space-y-3 text-xs">
+        <div>
+          <label class="font-semibold text-slate-600 block mb-1">Judul Tugas</label>
+          <input type="text" id="add-judul" required class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-600 block mb-1">Pilih Pegawai</label>
+          <select id="add-assignee" required class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue"></select>
+        </div>
+        <div>
+          <label class="font-semibold text-slate-600 block mb-1">Cabang/Lokasi</label>
+
+          <input type="text" id="add-cabang" required class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue" placeholder="Contoh: Toko Bandung">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-600 block mb-1">Foto Acuan / Standar Awal (Foto Sebelum)</label>
+          <input type="file" id="add-foto-sebelum" accept="image/*" class="w-full p-1 border rounded-lg text-slate-500">
+        </div>
+        <button type="submit" class="w-full py-3 bg-brand-blue text-white font-semibold rounded-xl mt-2">Simpan Job Desk</button>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==================== JAVASCRIPT LOGIC ==================== -->
+  <script>
+    let currentUser = null;
+    let allTasks = [];
+    let currentFilter = 'ALL';
+
+    document.addEventListener("DOMContentLoaded", () => {
+      lucide.createIcons();
+      checkSession();
+    });
+
+    function checkSession() {
+      const session = localStorage.getItem("user_session");
+      if (session) {
+        currentUser = JSON.parse(session);
+        document.getElementById("login-screen").classList.add("hidden");
+        document.getElementById("main-app").classList.remove("hidden");
+        
+        document.getElementById("user-name").innerText = currentUser.nama;
+        document.getElementById("user-role").innerText = currentUser.role;
+        document.getElementById("user-avatar").innerText = currentUser.nama.charAt(0).toUpperCase();
+
+        if (currentUser.role === 'Owner' || currentUser.role === 'Supervisor') {
+          document.getElementById("btn-add-task").classList.remove("hidden");
+        }
+
+        loadTasks();
+      }
+    }
+
+    async function handleLogin() {
+      const email = document.getElementById("login-email").value.trim();
+      if (!email) return alert("Masukkan email Anda!");
+
+      const btn = document.getElementById("btn-login");
+      btn.disabled = true;
+      btn.innerText = "Memeriksa...";
+
+      try {
+        const response = await fetch(API_URL, {
+          method: "POST",
+          body: JSON.stringify({ action: "login", email: email })
+        });
+        const result = await response.json();
+
+        if (result.status === "success") {
+          localStorage.setItem("user_session", JSON.stringify(result.user));
+          checkSession();
+        } else {
+          alert(result.message);
+        }
+      } catch (err) {
+        alert("Gagal koneksi ke server Apps Script!");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Masuk Aplikasi";
+      }
+    }
+
+    function handleLogout() {
+      localStorage.removeItem("user_session");
+      location.reload();
+    }
+
+    async function loadTasks() {
+      try {
+        const res = await fetch(`${API_URL}?action=getTasks`);
+        allTasks = await res.json();
+        renderTasks();
+        updateProgressBar();
+      } catch (err) {
+        document.getElementById("task-list").innerHTML = `<div class="text-center py-8 text-red-500 text-xs">Gagal memuat data tugas.</div>`;
+      }
+    }
+
+    function renderTasks() {
+      const listContainer = document.getElementById("task-list");
+      listContainer.innerHTML = "";
+
+      let filtered = allTasks;
+      if (currentUser.role === 'Pegawai') {
+        filtered = filtered.filter(t => t.assigned_to_email.toLowerCase() === currentUser.email.toLowerCase());
+      }
+      if (currentFilter !== 'ALL') {
+        filtered = filtered.filter(t => t.status === currentFilter);
+      }
+
+      if (filtered.length === 0) {
+        listContainer.innerHTML = `<div class="text-center py-8 text-slate-400 text-xs">Tidak ada job desk.</div>`;
+        return;
+      }
+
+      filtered.forEach(task => {
+        const card = document.createElement("div");
+        card.className = "bg-white p-4 rounded-2xl border border-slate-100 shadow-sm space-y-3";
+        
+        card.innerHTML = `
+          <div class="flex justify-between items-start">
+            <div>
+              <span class="text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-600">${task.cabang}</span>
+              <h4 class="font-bold text-slate-800 text-sm mt-1">${task.judul}</h4>
+              <p class="text-xs text-slate-400">Untuk: ${task.assigned_to_name}</p>
+            </div>
+            <span class="text-[10px] font-bold px-2 py-1 rounded-full ${getStatusBadge(task.status)}">${task.status}</span>
+          </div>
+
+          <!-- BEFORE AFTER PHOTO GRID -->
+          <div class="grid grid-cols-2 gap-2 my-2 text-center text-[10px]">
+            <div class="border rounded-lg p-1 bg-slate-50">
+              <span class="font-bold text-slate-400 block mb-1">SEBELUM</span>
+              ${task.foto_sebelum_url ? `<img src="${task.foto_sebelum_url}" class="w-full h-20 object-cover rounded">` : `<div class="h-20 bg-slate-100 flex items-center justify-center text-slate-300">Tanpa Foto</div>`}
+            </div>
+            <div class="border rounded-lg p-1 bg-slate-50">
+              <span class="font-bold text-slate-400 block mb-1">SESUDAH</span>
+              ${task.foto_sesudah_url ? `<img src="${task.foto_sesudah_url}" class="w-full h-20 object-cover rounded">` : `<div class="h-20 bg-slate-100 flex items-center justify-center text-slate-300">Belum Ada</div>`}
+            </div>
+          </div>
+
+          <!-- ACTIONS -->
+          <div class="pt-2 border-t flex justify-end gap-2">
+            ${getActionButtons(task)}
+          </div>
+        `;
+        listContainer.appendChild(card);
+      });
+      lucide.createIcons();
+    }
+
+    function getStatusBadge(status) {
+      if (status === 'Done') return 'bg-emerald-100 text-emerald-700';
+      if (status === 'Review') return 'bg-amber-100 text-amber-700';
+      return 'bg-slate-100 text-slate-600';
+    }
+
+    function getActionButtons(task) {
+      if (currentUser.role === 'Pegawai' && task.status === 'To Do') {
+        return `<button onclick="uploadProof('${task.task_id}')" class="px-3 py-1.5 bg-brand-blue text-white rounded-lg text-xs font-semibold">Tandai Selesai</button>`;
+      }
+      if ((currentUser.role === 'Owner' || currentUser.role === 'Supervisor') && task.status === 'Review') {
+        return `<button onclick="approveTask('${task.task_id}')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Setujui (Approve)</button>`;
+      }
+      return '';
+    }
+
+    function updateProgressBar() {
+      if (allTasks.length === 0) return;
+      const done = allTasks.filter(t => t.status === 'Done').length;
+      const pct = Math.round((done / allTasks.length) * 100);
+      document.getElementById("progress-bar").style.width = pct + "%";
+      document.getElementById("progress-percent").innerText = pct + "%";
+    }
+
+    function filterTasks(status) {
+      currentFilter = status;
+      renderTasks();
+    }
+
+    function openAddTaskModal() { document.getElementById("modal-add-task").classList.remove("hidden"); }
+    function closeAddTaskModal() { document.getElementById("modal-add-task").classList.add("hidden"); }
+  </script>
+</body>
+</html>
