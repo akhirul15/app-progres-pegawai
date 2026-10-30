@@ -35,8 +35,8 @@
 
   <!-- ==================== CONFIG SCRIPT ==================== -->
   <script>
-    // PASTE URL WEB APP GOOGLE APPS SCRIPT ANDA DI SINI
-    const API_URL = "https://script.google.com/macros/s/AKfycbwVTePTkSnNiRmNJN1ploidiaWM8iwiz9k0dMqSFvYtdWUAOpMRuak7ULK7W_gEqNUBoA/exec";
+    // GANTI TEKS DI BAWAH INI DENGAN URL WEB APP GOOGLE APPS SCRIPT ANDA
+    const API_URL = "https://script.google.com/macros/s/AKfycbx...MASUKKAN_URL_ANDA_DI_SINI.../exec";
   </script>
 
   <!-- ==================== LOGIN SCREEN ==================== -->
@@ -111,7 +111,6 @@
 
       <!-- TASK LIST CONTAINER -->
       <div id="task-list" class="space-y-3">
-        <!-- Task Cards Akan Di-render Secara Dinamis oleh JS -->
         <div class="text-center py-8 text-slate-400 text-sm">Memuat data tugas...</div>
       </div>
 
@@ -132,19 +131,22 @@
           <input type="text" id="add-judul" required class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue">
         </div>
         <div>
-          <label class="font-semibold text-slate-600 block mb-1">Pilih Pegawai</label>
-          <select id="add-assignee" required class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue"></select>
+          <label class="font-semibold text-slate-600 block mb-1">Email Pegawai Target</label>
+          <input type="email" id="add-assignee-email" required placeholder="pegawai@gmail.com" class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue">
+        </div>
+        <div>
+          <label class="font-semibold text-slate-600 block mb-1">Nama Pegawai</label>
+          <input type="text" id="add-assignee-name" required placeholder="Nama Pegawai" class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue">
         </div>
         <div>
           <label class="font-semibold text-slate-600 block mb-1">Cabang/Lokasi</label>
-
           <input type="text" id="add-cabang" required class="w-full p-2.5 border rounded-lg focus:outline-none focus:ring-1 focus:ring-brand-blue" placeholder="Contoh: Toko Bandung">
         </div>
         <div>
-          <label class="font-semibold text-slate-600 block mb-1">Foto Acuan / Standar Awal (Foto Sebelum)</label>
+          <label class="font-semibold text-slate-600 block mb-1">Foto Acuan / Standar Awal (Sebelum)</label>
           <input type="file" id="add-foto-sebelum" accept="image/*" class="w-full p-1 border rounded-lg text-slate-500">
         </div>
-        <button type="submit" class="w-full py-3 bg-brand-blue text-white font-semibold rounded-xl mt-2">Simpan Job Desk</button>
+        <button type="submit" id="btn-submit-task" class="w-full py-3 bg-brand-blue text-white font-semibold rounded-xl mt-2">Simpan Job Desk</button>
       </form>
     </div>
   </div>
@@ -169,7 +171,7 @@
         
         document.getElementById("user-name").innerText = currentUser.nama;
         document.getElementById("user-role").innerText = currentUser.role;
-        document.getElementById("user-avatar").innerText = currentUser.nama.charAt(0).toUpperCase();
+        document.getElementById("user-avatar").innerText = currentUser.nama ? currentUser.nama.charAt(0).toUpperCase() : 'U';
 
         if (currentUser.role === 'Owner' || currentUser.role === 'Supervisor') {
           document.getElementById("btn-add-task").classList.remove("hidden");
@@ -190,8 +192,12 @@
       try {
         const response = await fetch(API_URL, {
           method: "POST",
+          headers: {
+            "Content-Type": "text/plain;charset=utf-8"
+          },
           body: JSON.stringify({ action: "login", email: email })
         });
+        
         const result = await response.json();
 
         if (result.status === "success") {
@@ -201,7 +207,8 @@
           alert(result.message);
         }
       } catch (err) {
-        alert("Gagal koneksi ke server Apps Script!");
+        console.error("Login Error:", err);
+        alert("Gagal koneksi ke server Apps Script! Pastikan URL API di index.html sudah benar.");
       } finally {
         btn.disabled = false;
         btn.innerText = "Masuk Aplikasi";
@@ -230,7 +237,7 @@
 
       let filtered = allTasks;
       if (currentUser.role === 'Pegawai') {
-        filtered = filtered.filter(t => t.assigned_to_email.toLowerCase() === currentUser.email.toLowerCase());
+        filtered = filtered.filter(t => String(t.assigned_to_email).toLowerCase() === String(currentUser.email).toLowerCase());
       }
       if (currentFilter !== 'ALL') {
         filtered = filtered.filter(t => t.status === currentFilter);
@@ -285,7 +292,7 @@
 
     function getActionButtons(task) {
       if (currentUser.role === 'Pegawai' && task.status === 'To Do') {
-        return `<button onclick="uploadProof('${task.task_id}')" class="px-3 py-1.5 bg-brand-blue text-white rounded-lg text-xs font-semibold">Tandai Selesai</button>`;
+        return `<button onclick="completeTask('${task.task_id}')" class="px-3 py-1.5 bg-brand-blue text-white rounded-lg text-xs font-semibold">Tandai Selesai</button>`;
       }
       if ((currentUser.role === 'Owner' || currentUser.role === 'Supervisor') && task.status === 'Review') {
         return `<button onclick="approveTask('${task.task_id}')" class="px-3 py-1.5 bg-emerald-600 text-white rounded-lg text-xs font-semibold">Setujui (Approve)</button>`;
@@ -304,6 +311,120 @@
     function filterTasks(status) {
       currentFilter = status;
       renderTasks();
+    }
+
+    async function submitAddTask(e) {
+      e.preventDefault();
+      const btn = document.getElementById("btn-submit-task");
+      btn.disabled = true;
+      btn.innerText = "Menyimpan...";
+
+      const judul = document.getElementById("add-judul").value;
+      const email = document.getElementById("add-assignee-email").value;
+      const nama = document.getElementById("add-assignee-name").value;
+      const cabang = document.getElementById("add-cabang").value;
+      const fileInput = document.getElementById("add-foto-sebelum");
+
+      let fotoBase64 = "";
+      let fileName = "";
+
+      if (fileInput.files.length > 0) {
+        const file = fileInput.files[0];
+        fileName = file.name;
+        fotoBase64 = await convertBase64(file);
+      }
+
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "addTask",
+            judul: judul,
+            assigned_to_email: email,
+            assigned_to_name: nama,
+            created_by: currentUser.email,
+            cabang: cabang,
+            fotoSebelumBase64: fotoBase64,
+            fotoSebelumFileName: fileName
+          })
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          closeAddTaskModal();
+          loadTasks();
+        } else {
+          alert(result.message);
+        }
+      } catch (err) {
+        alert("Gagal menambahkan tugas!");
+      } finally {
+        btn.disabled = false;
+        btn.innerText = "Simpan Job Desk";
+      }
+    }
+
+    async function completeTask(taskId) {
+      const fileInput = document.createElement('input');
+      fileInput.type = 'file';
+      fileInput.accept = 'image/*';
+      fileInput.onchange = async () => {
+        if (fileInput.files.length === 0) return;
+        const file = fileInput.files[0];
+        const base64 = await convertBase64(file);
+
+        try {
+          const res = await fetch(API_URL, {
+            method: "POST",
+            headers: { "Content-Type": "text/plain;charset=utf-8" },
+            body: JSON.stringify({
+              action: "updateTaskStatus",
+              taskId: taskId,
+              newStatus: "Review",
+              userEmail: currentUser.email,
+              fotoSesudahBase64: base64,
+              fotoSesudahFileName: file.name
+            })
+          });
+          const result = await res.json();
+          if (result.status === "success") {
+            loadTasks();
+          }
+        } catch (err) {
+          alert("Gagal memperbarui tugas!");
+        }
+      };
+      fileInput.click();
+    }
+
+    async function approveTask(taskId) {
+      try {
+        const res = await fetch(API_URL, {
+          method: "POST",
+          headers: { "Content-Type": "text/plain;charset=utf-8" },
+          body: JSON.stringify({
+            action: "updateTaskStatus",
+            taskId: taskId,
+            newStatus: "Done",
+            userEmail: currentUser.email
+          })
+        });
+        const result = await res.json();
+        if (result.status === "success") {
+          loadTasks();
+        }
+      } catch (err) {
+        alert("Gagal menyetujui tugas!");
+      }
+    }
+
+    function convertBase64(file) {
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.readAsDataURL(file);
+        reader.onload = () => resolve(reader.result);
+        reader.onerror = error => reject(error);
+      });
     }
 
     function openAddTaskModal() { document.getElementById("modal-add-task").classList.remove("hidden"); }
